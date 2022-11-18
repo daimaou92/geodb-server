@@ -303,7 +303,7 @@ dependencies = [
 [[package]]
 name = "geodb"
 version = "0.1.0"
-source = "git+https://github.com/daimaou92/geodb?branch=main#7c0705c6f4e7580529fc31e57937eb3a93aa581a"
+source = "git+https://github.com/daimaou92/geodb?branch=main#9152a0725e4c07af38534cd7281ed15c11e42e24"
 dependencies = [
  "csv",
  "flate2",
@@ -324,6 +324,8 @@ dependencies = [
  "axum",
  "geodb",
  "maxminddb",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 
@@ -775,9 +777,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.11.12"
+version = "0.11.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "431949c384f4e2ae07605ccaa56d1d9d2ecdb5cadd4f9577ccfab29f2e5149fc"
+checksum = "68cc60575865c7831548863cc02356512e3f1dc2f3f82cb837d7fc4cc8f3c97c"
 dependencies = [
  "base64",
  "bytes",

@@ -1,8 +1,8 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-
-use maxminddb::MaxMindDBError;
 
 #[derive(Default)]
 struct AppState {
@@ -13,15 +13,81 @@ struct AppState {
     cou_hashmap: HashMap<String, geodb::Country>,
 }
 
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+struct Country {
+    iso2: String,
+    name: String,
+    dial_codes: Vec<String>,
+}
+
+impl AppState {
+    fn country_by_ip(&self, ip: std::net::IpAddr) -> Result<Country, String> {
+        let reader = if let Some(r) = &self.cou_reader {
+            r
+        } else {
+            return Err("NO_INIT".to_string());
+        };
+
+        let country: maxminddb::geoip2::Country = if let Ok(c) = reader.lookup(ip) {
+            c
+        } else {
+            return Err("LOOKUP_ERR".to_string());
+        };
+        let country = if let Some(t) = country.country {
+            t
+        } else {
+            return Err("COUNTRY_OP_ERR".to_string());
+        };
+        let mut res = Country::default();
+        if let Some(i) = country.iso_code {
+            res.iso2 = String::from(i);
+        }
+        if let Some(n) = country.names {
+            if let Some(n) = n.get("en") {
+                res.name = String::from(*n);
+            }
+        }
+
+        if let Some(v) = self.cou_hashmap.get(&res.iso2) {
+            res.dial_codes = v.dial_codes.clone();
+        }
+        Ok(res)
+    }
+}
+
 type SharedState = Arc<RwLock<AppState>>;
+
+async fn get_country_by_ip(
+    axum::extract::Path(p): axum::extract::Path<String>,
+    axum::extract::State(state): axum::extract::State<SharedState>,
+) -> impl axum::response::IntoResponse {
+    println!("IP: {:?}", p.as_str());
+    let ip = if let Ok(p) = std::net::IpAddr::from_str(p.as_str()) {
+        p
+    } else {
+        return (axum::http::StatusCode::BAD_REQUEST, axum::Json::default());
+    };
+    let mut c: Country = Country::default();
+    match state.read().await.country_by_ip(ip) {
+        Ok(v) => {
+            c = v.clone();
+        }
+        Err(e) => {
+            eprintln!("{:?}", e);
+            return (axum::http::StatusCode::BAD_REQUEST, axum::Json::default());
+        }
+    }
+    (axum::http::StatusCode::OK, axum::Json(c))
+}
 
 async fn index_handler(axum::extract::State(state): axum::extract::State<SharedState>) -> String {
     "Hello World".to_string()
 }
 
 fn add_routes(state: SharedState) -> axum::Router<SharedState> {
-    let app =
-        axum::Router::with_state(Arc::clone(&state)).route("/", axum::routing::get(index_handler));
+    let app = axum::Router::with_state(Arc::clone(&state))
+        .route("/", axum::routing::get(index_handler))
+        .route("/:key", axum::routing::get(get_country_by_ip));
     app
 }
 
@@ -39,21 +105,42 @@ async fn main() {
         while let Some(v) = rx.recv().await {
             if &v == "updated" || &v == "nochange" {
                 let mut ss = ss.write().await;
-                if &v == "updated" {
-                    if let Ok(t) = geodb::countries_hashmap().await {
-                        ss.cou_hashmap = t;
-                    }
-                    if let Ok(t) = geodb::reader_countries().await {
-                        ss.cou_reader = Some(maxminddb::Reader::<Vec<u8>>::from(t));
-                    }
+                if (ss.init && &v == "updated") || !ss.init {
+                    match geodb::countries_hashmap().await {
+                        Ok(t) => {
+                            ss.cou_hashmap = t;
+                        }
+                        Err(e) => {
+                            eprintln!("Hashmap Err: {:?}", e);
+                        }
+                    };
 
-                    if let Ok(t) = geodb::reader_cities().await {
-                        ss.cit_reader = Some(maxminddb::Reader::<Vec<u8>>::from(t));
-                    }
+                    match geodb::reader_countries().await {
+                        Ok(t) => {
+                            ss.cou_reader = Some(maxminddb::Reader::<Vec<u8>>::from(t));
+                        }
+                        Err(e) => {
+                            eprintln!("Reader Countries Err: {:?}", e);
+                        }
+                    };
 
-                    if let Ok(t) = geodb::reader_asn().await {
-                        ss.asn_reader = Some(maxminddb::Reader::<Vec<u8>>::from(t));
-                    }
+                    match geodb::reader_cities().await {
+                        Ok(t) => {
+                            ss.cit_reader = Some(maxminddb::Reader::<Vec<u8>>::from(t));
+                        }
+                        Err(e) => {
+                            eprintln!("Reader Cities Err: {:?}", e);
+                        }
+                    };
+
+                    match geodb::reader_asn().await {
+                        Ok(t) => {
+                            ss.asn_reader = Some(maxminddb::Reader::<Vec<u8>>::from(t));
+                        }
+                        Err(e) => {
+                            eprintln!("Reader ASN Err: {:?}", e);
+                        }
+                    };
                 }
                 ss.init = true;
             } else {
