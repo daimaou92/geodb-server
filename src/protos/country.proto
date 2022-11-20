@@ -1,0 +1,38 @@
+syntax = "proto3";
+package pb.geo;
+
+message Country {
+	repeated string dial_codes = 1;
+	string iso3 = 2;
+	optional int32 iso_num = 3;
+	string iso2 = 4;
+	string currency_code = 5;
+	string currency_name = 6;
+	string name = 7;
+	string region = 8;
+	string capital = 9;
+	string continent_code = 10;
+	string tld = 11;
+	repeated string language_codes = 12;
+	optional int64 geoname_id = 13;
+	string display_name = 14;
+}
+
+message City {
+	optional int64 geoname_id  = 1;
+	string country_iso2 = 2;
+	optional double latitude = 3;
+	optional double longitude = 4;
+	optional uint32 metro_code = 5;
+	optional string time_zone = 6;
+	optional string postal_code = 7;
+	optional uint32 radius = 8;
+	bool is_anonymous_proxy = 9;
+	bool is_satellite_provider = 10;
+	string name = 11;  
+}
+
+message ASN {
+	uint32 autonomous_system_number = 1;
+	string autonomous_system_org = 2;
+}
