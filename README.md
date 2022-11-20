@@ -49,7 +49,7 @@ curl http://localhost:40000/country/ip/1.32.128.0
 
 1. This application uses protobufs and responds in protobufs only. The proto files are
 available in `src/protos`. Naturally to build those you'll need to install
-`[protoc](https://developers.google.com/protocol-buffers/docs/downloads)`.
+[protoc](https://developers.google.com/protocol-buffers/docs/downloads).
 2. Once it's available in `PATH` - just do `cargo build` or `cargo build --release`
 
 
