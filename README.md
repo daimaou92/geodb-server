@@ -58,20 +58,24 @@ available in `src/protos`. Naturally to build those you'll need to install
 This application has 4 APIs. All of them are GET HTTP Requests and each returns one
 of the protobuf `Message`s defined in `src/protos/geo.proto`.
 
-1. [GET] /country/ip/:ip
+1. **[GET]** `/country/ip/:ip`
+
 Given some IP(v4|v6) this responds with the proto message `Country`.
 Responds with a 400 Bad Request in case no mapping is found
 
-2. [GET] /country/iso/:iso
+2. **[GET]** `/country/iso/:iso`
+
 Given the ISO2 code, as defined in [ISO 3166](https://www.iso.org/iso-3166-country-codes.html),
 of any country this route also responds with the proto message `Country`.
 400 Bad Request if the code is not found.
 
-3. [GET] /city/:ip
+3. **[GET]** `/city/:ip`
+
 Given some IP(v4|v6) this responds with the proto message `City`.
 400 Bad Request if not found.
 
-4. [GET] /asn/:ip
+4. **[GET]** `/asn/:ip`
+
 Given some IP(v4|v6) this responds with the proto message `ASN`.
 400 Bad Request if not found.
 
